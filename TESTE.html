@@ -1,0 +1,753 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Smartphone, ShoppingCart, Search, Menu, X, Trash2, MessageCircle, Star, ShieldCheck, 
+  Truck, Lock, Plus, LogOut, LayoutDashboard, Zap, Camera, Upload, Image as ImageIcon, 
+  Wrench, AlertCircle, User, Phone, Info, Cpu, Battery, Maximize2, ChevronRight, Eye, 
+  Layers, CheckCircle2, Edit3, ChevronLeft, Loader2, Clock, Settings, ArrowRight, 
+  MapPin, Instagram, Facebook, Mail, Headphones, Code, Copy, ExternalLink, Github, Globe, 
+  MonitorSmartphone, CalendarDays, ToggleLeft, ToggleRight
+} from 'lucide-react';
+
+// --- CONFIGURAÇÃO INICIAL DE DADOS ---
+const INITIAL_BANNERS = [
+  {
+    url: "https://images.unsplash.com/photo-1616348436168-de43ad0db179?auto=format&fit=crop&q=80&w=1200",
+    title: "IPHONE 15 PRO MAX",
+    sub: "Titânio de grau aeroespacial. O auge da potência mobile em suas mãos."
+  },
+  {
+    url: "https://images.unsplash.com/photo-1592890288564-76628a30a657?auto=format&fit=crop&q=80&w=1200",
+    title: "LINHA GALAXY S24",
+    sub: "A inteligência artificial que transforma cada interação no seu dia a dia."
+  },
+  {
+    url: "https://images.unsplash.com/photo-1556656793-02715d8dd660?auto=format&fit=crop&q=80&w=1200",
+    title: "ACESSÓRIOS PREMIUM",
+    sub: "Garantia total, estilo e procedência WK em cada detalhe selecionado."
+  }
+];
+
+const INITIAL_PRODUCTS = [
+  {
+    id: 1,
+    name: "iPhone 15 Pro Max 256GB",
+    price: 8299.00,
+    category: "Smartphones",
+    image: "https://images.unsplash.com/photo-1696446701796-da61225697cc?auto=format&fit=crop&q=80&w=800",
+    badge: "Premium",
+    specs: "Chip A17 Pro • RAM 8GB • Tela 6.7' Super Retina XDR",
+    description: "Design robusto em titânio e o processador mais avançado já criado pela Apple para um smartphone profissional."
+  },
+  {
+    id: 2,
+    name: "Samsung Galaxy S24 Ultra",
+    price: 7599.00,
+    category: "Smartphones",
+    image: "https://images.unsplash.com/photo-1707077677443-42a3e0f7f320?auto=format&fit=crop&q=80&w=800",
+    badge: "Galaxy AI",
+    specs: "Snapdragon 8 Gen 3 • S-Pen • Câmera 200MP",
+    description: "Equipado com o sistema Galaxy AI, tradução em tempo real e as melhores câmeras do mundo Android."
+  },
+  {
+    id: 3,
+    name: "Apple Watch Ultra 2",
+    price: 6499.00,
+    category: "Smartwatch",
+    image: "https://images.unsplash.com/photo-1695653422715-991ec3a0db7a?auto=format&fit=crop&q=80&w=800",
+    badge: "Esportivo",
+    specs: "Caixa de Titânio • GPS de Precisão • Até 36h de Bateria",
+    description: "O relógio mais robusto e capaz da Apple, feito para aventuras extremas."
+  }
+];
+
+const CATEGORIES = ["Todos", "Smartphones", "Acessórios", "Proteção", "Smartwatch"];
+
+const SERVICES = [
+  "Troca de Tela & Vidro",
+  "Bateria Alta Performance",
+  "Reparo de Placa (Micro)",
+  "Recuperação de Software",
+  "Desenvolvimento Web WK",
+  "Consultoria Tech"
+];
+
+// --- AUXILIARES ---
+const FormatCurrency = (value) => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+};
+
+const Toast = ({ message, show, type = 'success' }) => {
+  if (!show || !message) return null;
+  const bgClass = type === 'error' ? 'bg-red-600' : 'bg-blue-600';
+  return (
+    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[1500] animate-in fade-in slide-in-from-bottom-5 px-4 w-full max-w-xs md:max-w-md">
+      <div className={`${bgClass} text-white px-6 py-4 rounded-full shadow-2xl flex items-center justify-center gap-3 border border-white/20 text-center`}>
+        <ShieldCheck size={18} />
+        <span className="font-bold text-xs uppercase tracking-widest">{String(message)}</span>
+      </div>
+    </div>
+  );
+};
+
+// --- COMPONENTE PRINCIPAL ---
+export default function App() {
+  // --- ESTADOS ---
+  const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  const [banners, setBanners] = useState(INITIAL_BANNERS);
+  const [storeHours, setStoreHours] = useState({ open: "08:00", close: "18:00" });
+  const [isStoreOpen, setIsStoreOpen] = useState(false);
+  const [weekendOpen, setWeekendOpen] = useState(true);
+  const [cart, setCart] = useState([]);
+  
+  // Navegação e UI
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("store"); 
+  const [categoryFilter, setCategoryFilter] = useState("Todos");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null); 
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  
+  // Sliders
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const [currentProductIndex, setCurrentProductIndex] = useState(0);
+  
+  // Notificações
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState("success");
+  
+  // Admin
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [adminUser, setAdminUser] = useState("");
+  const [adminPass, setAdminPass] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [adminMode, setAdminMode] = useState("products"); 
+  
+  // Formulários
+  const [newProduct, setNewProduct] = useState({
+    name: '', price: '', category: 'Smartphones', image: '', badge: '', specs: '', description: ''
+  });
+  const [repairData, setRepairData] = useState({
+    clientName: '', whatsapp: '', deviceModel: '', defectDescription: ''
+  });
+
+  const productFileRef = useRef(null);
+  const bannerFileRef = useRef(null);
+
+  // --- FUNÇÕES DE AÇÃO (HANDLERS) ---
+  
+  const triggerToast = (msg, type = 'success') => {
+    setToastMessage(msg);
+    setToastType(type);
+    setShowToast(true);
+  };
+
+  const addToCart = (product) => {
+    setCart(prev => {
+      const exists = prev.find(i => i.id === product.id);
+      if (exists) return prev.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+      return [...prev, { ...product, quantity: 1 }];
+    });
+    triggerToast("Adicionado ao carrinho!");
+    setIsCartOpen(true);
+  };
+
+  const removeFromCart = (id) => setCart(cart.filter(item => item.id !== id));
+
+  const copyToClipboard = (text, label) => {
+    const el = document.createElement('textarea');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    triggerToast(`${label} copiado!`);
+  };
+
+  const nextProduct = () => setCurrentProductIndex(prev => (prev + 1) % products.length);
+  const prevProduct = () => setCurrentProductIndex(prev => (prev === 0 ? products.length - 1 : prev - 1));
+
+  // --- ADMIN ACTIONS ---
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (adminUser.trim() === "Wk" && adminPass === "941819") {
+      setIsAdminLoggedIn(true);
+      setShowAdminLogin(false);
+      setAdminUser("");
+      setAdminPass("");
+      setLoginError("");
+      triggerToast("Acesso Master Validado!");
+    } else {
+      setLoginError("Credenciais inválidas.");
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAdminLoggedIn(false);
+    triggerToast("Sessão finalizada.");
+  };
+
+  const handleFileUpload = (e, type) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (type === 'product') setNewProduct(prev => ({ ...prev, image: reader.result }));
+        if (type === 'banner') setBanners(prev => [...prev, { url: reader.result, title: "NOVA OFERTA DISPONÍVEL", sub: "Confira agora os detalhes em nossa loja." }]);
+        triggerToast("Imagem carregada!");
+      };
+      reader.readAsDataURL(file);
+      e.target.value = ""; // Limpa o input para permitir upload da mesma imagem novamente
+    }
+  };
+
+  const handleSaveProduct = (e) => {
+    e.preventDefault();
+    if (!newProduct.name || !newProduct.price) return triggerToast("Preencha nome e preço", "error");
+    if (editingId) {
+      setProducts(products.map(p => p.id === editingId ? { ...newProduct, id: editingId, price: parseFloat(newProduct.price) } : p));
+      setEditingId(null);
+      triggerToast("Item atualizado!");
+    } else {
+      const product = { ...newProduct, id: Date.now(), price: parseFloat(newProduct.price) };
+      setProducts([product, ...products]);
+      triggerToast("Item adicionado!");
+    }
+    setNewProduct({ name: '', price: '', category: 'Smartphones', image: '', badge: '', specs: '', description: '' });
+  };
+
+  const handleDeleteProduct = (id) => {
+      if(window.confirm("Deseja remover este item?")) {
+          setProducts(products.filter(p => p.id !== id));
+          triggerToast("Item removido!");
+      }
+  };
+
+  const startEdit = (p) => {
+    setEditingId(p.id);
+    setNewProduct({ ...p, price: p.price.toString() });
+    setAdminMode("products");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const deleteBanner = (index) => {
+    if (banners.length <= 1) {
+      triggerToast("Mantenha ao menos um banner.", "error");
+      return;
+    }
+    setBanners(banners.filter((_, i) => i !== index));
+    setCurrentBannerIndex(0);
+    triggerToast("Banner removido.");
+  };
+
+  const handleRepairSubmit = (e) => {
+    e.preventDefault();
+    const { clientName, whatsapp, deviceModel, defectDescription } = repairData;
+    if (!clientName || !deviceModel || !defectDescription) {
+        triggerToast("Preencha todos os campos!", "error");
+        return;
+    }
+    const message = `🛠️ *ASSISTÊNCIA P.A CELULARES*\n\n*Cliente:* ${clientName}\n*WhatsApp:* ${whatsapp}\n*Aparelho:* ${deviceModel}\n*Defeito:* ${defectDescription}`;
+    window.open(`https://wa.me/5562999999999?text=${encodeURIComponent(message)}`, '_blank');
+    triggerToast("Relatório gerado!");
+  };
+
+  const cartTotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
+
+  // --- EFEITOS ---
+  useEffect(() => {
+    const checkStatus = () => {
+      const now = new Date();
+      const current = now.getHours() * 60 + now.getMinutes();
+      const day = now.getDay(); 
+      const isWeekend = day === 0 || day === 6;
+
+      if (isWeekend && !weekendOpen) {
+          setIsStoreOpen(false);
+          return;
+      }
+
+      const [oH, oM] = storeHours.open.split(":").map(Number);
+      const [cH, cM] = storeHours.close.split(":").map(Number);
+      setIsStoreOpen(current >= (oH * 60 + oM) && current < (cH * 60 + cM));
+    };
+    checkStatus();
+    const interval = setInterval(checkStatus, 30000);
+    return () => clearInterval(interval);
+  }, [storeHours, weekendOpen]);
+
+  useEffect(() => {
+    if (activeTab === "store") {
+      const bannerInt = setInterval(() => setCurrentBannerIndex(p => (p + 1) % banners.length), 5000);
+      const productInt = setInterval(() => setCurrentProductIndex(p => (p + 1) % products.length), 4000);
+      return () => { clearInterval(bannerInt); clearInterval(productInt); };
+    }
+  }, [banners.length, products.length, activeTab]);
+
+  useEffect(() => {
+    if (showToast) {
+      const timer = setTimeout(() => setShowToast(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showToast]);
+
+  const filteredProducts = products.filter(p => 
+    (categoryFilter === "Todos" || p.category === categoryFilter) &&
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // --- RENDER ADMIN ---
+  if (isAdminLoggedIn) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased">
+        <Toast show={showToast} message={toastMessage} type={toastType} />
+        <header className="sticky top-0 z-[100] bg-slate-900 border-b border-blue-900/20 p-4 flex flex-wrap justify-between items-center gap-4">
+          <div className="flex items-center gap-2">
+            <LayoutDashboard className="text-blue-500" size={20} />
+            <h1 className="font-bold text-lg uppercase tracking-tighter italic">WK ADMIN PANEL</h1>
+          </div>
+          <div className="flex gap-2">
+            {["products", "banners", "config"].map(mode => (
+              <button key={mode} onClick={() => setAdminMode(mode)} className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${adminMode === mode ? 'bg-blue-600 shadow-lg' : 'bg-slate-800 opacity-60 hover:opacity-100'}`}>{mode}</button>
+            ))}
+            <button onClick={handleLogout} className="p-2 bg-red-600/20 text-red-500 rounded-full hover:bg-red-600 hover:text-white transition-all"><LogOut size={16}/></button>
+          </div>
+        </header>
+
+        <main className="max-w-6xl mx-auto p-4 md:p-8 animate-in fade-in duration-500">
+          {adminMode === "products" ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-white">
+              <div className={`bg-slate-900 border ${editingId ? 'border-yellow-500' : 'border-slate-800'} rounded-[2rem] p-6 shadow-xl h-fit`}>
+                <h2 className="text-sm font-black mb-6 uppercase tracking-widest text-blue-500 flex items-center gap-2">
+                    {editingId ? <Edit3 size={16}/> : <Plus size={16}/>} {editingId ? "EDITAR ITEM" : "NOVO DISPOSITIVO"}
+                </h2>
+                <form onSubmit={handleSaveProduct} className="space-y-4">
+                  <div onClick={() => productFileRef.current.click()} className="w-full h-32 bg-slate-800 border-2 border-dashed border-slate-700 rounded-[1.5rem] flex items-center justify-center cursor-pointer hover:border-blue-500 overflow-hidden relative group">
+                    {newProduct.image ? <img src={newProduct.image} className="w-full h-full object-cover" alt="p" /> : <Camera size={24} className="text-slate-600"/>}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all"><Upload size={20} className="text-white"/></div>
+                  </div>
+                  <input type="file" accept="image/*" ref={productFileRef} onChange={(e) => handleFileUpload(e, 'product')} className="hidden" />
+                  <input type="text" placeholder="Nome do Modelo" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded-full px-6 py-3.5 outline-none focus:ring-2 focus:ring-blue-600 text-sm font-bold text-white italic" />
+                  <input type="number" placeholder="Preço (R$)" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded-full px-6 py-3.5 outline-none focus:ring-2 focus:ring-blue-600 text-sm font-bold text-white" />
+                  <textarea placeholder="Ficha Técnica Rápida" value={newProduct.specs} onChange={e => setNewProduct({...newProduct, specs: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-5 h-24 outline-none text-xs text-white italic" />
+                  <button type="submit" className={`w-full ${editingId ? 'bg-yellow-600' : 'bg-blue-600'} py-4 rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all italic text-white`}>GRAVAR ALTERAÇÕES</button>
+                </form>
+              </div>
+              <div className="space-y-3">
+                <h2 className="text-sm font-black uppercase text-slate-500 mb-4 tracking-widest">Stock Ativo</h2>
+                {products.map(p => (
+                  <div key={p.id} className="bg-slate-900 border border-slate-800 p-4 rounded-[2rem] flex items-center gap-4 hover:border-blue-900/30 transition-all text-white shadow-lg">
+                    <img src={p.image} className="h-14 w-14 rounded-xl object-cover border border-slate-800 shadow-inner" alt="p" />
+                    <div className="flex-1 min-w-0"><h3 className="font-bold text-xs truncate uppercase tracking-tight italic">{p.name}</h3><p className="text-blue-500 font-bold text-sm leading-none mt-1">{FormatCurrency(p.price)}</p></div>
+                    <div className="flex gap-1">
+                      <button onClick={() => startEdit(p)} className="p-2 bg-blue-600/10 text-blue-400 rounded-full hover:bg-blue-600 hover:text-white transition-all"><Edit3 size={14}/></button>
+                      <button onClick={() => handleDeleteProduct(p.id)} className="p-2 bg-red-600/10 text-red-500 rounded-full hover:bg-red-600 hover:text-white transition-all"><Trash2 size={14}/></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : adminMode === "banners" ? (
+            <div className="space-y-6">
+                <div onClick={() => bannerFileRef.current.click()} className="w-full h-40 border-2 border-dashed border-slate-800 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:border-blue-600 hover:bg-blue-600/5 transition-all group">
+                    <Plus size={32} className="text-blue-500 group-hover:scale-110 transition-all" />
+                    <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Novo Banner Rotativo</p>
+                </div>
+                <input type="file" accept="image/*" ref={bannerFileRef} onChange={(e) => handleFileUpload(e, 'banner')} className="hidden" />
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                    {banners.map((b, i) => (
+                        <div key={i} className="relative aspect-video rounded-3xl overflow-hidden border border-slate-800 group shadow-lg">
+                            <img src={b.url || b} className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700" alt="b" />
+                            <button onClick={() => deleteBanner(i)} className="absolute inset-0 bg-red-600/80 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                                <Trash2 size={24} className="text-white" />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+          ) : (
+            <div className="max-w-md mx-auto bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 shadow-xl">
+                <h2 className="text-lg font-black mb-8 flex items-center gap-3 italic uppercase text-white"><Clock className="text-blue-500" /> Operação</h2>
+                <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2"><label className="text-[9px] font-black uppercase text-slate-500 ml-2 tracking-widest">Abertura</label><input type="time" value={storeHours.open} onChange={e => setStoreHours({...storeHours, open: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded-full p-4 text-center font-black text-blue-500 text-lg shadow-inner" /></div>
+                    <div className="space-y-2"><label className="text-[9px] font-black uppercase text-slate-500 ml-2 tracking-widest">Fecho</label><input type="time" value={storeHours.close} onChange={e => setStoreHours({...storeHours, close: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded-full p-4 text-center font-black text-blue-500 text-lg shadow-inner" /></div>
+                </div>
+                <div className="bg-slate-800 p-4 rounded-2xl flex items-center justify-between mb-8 mt-6">
+                        <div className="flex items-center gap-3">
+                            <CalendarDays className="text-blue-500" size={20} />
+                            <span className="text-xs font-bold text-white">Fins de Semana</span>
+                        </div>
+                        <button onClick={() => { setWeekendOpen(!weekendOpen); triggerToast(weekendOpen ? "Fim de semana fechado" : "Fim de semana aberto"); }} className="transition-all active:scale-90">
+                            {weekendOpen ? <ToggleRight className="text-green-500" size={32}/> : <ToggleLeft className="text-slate-600" size={32}/>}
+                        </button>
+                    </div>
+                <button onClick={() => triggerToast("Horários salvos!")} className="w-full bg-blue-600 py-4 rounded-full font-black mt-4 text-[10px] uppercase tracking-widest shadow-xl text-white italic">Aplicar Alterações</button>
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
+
+  // --- RENDER CLIENTE ---
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans antialiased pb-24 md:pb-0 selection:bg-blue-600/30">
+      <Toast show={showToast} message={toastMessage} type={toastType} />
+
+      {/* MODAL SUPORTE & DEV INTERATIVO */}
+      {showSupportModal && (
+          <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/98 backdrop-blur-3xl p-4 animate-in fade-in duration-300">
+              <div className="bg-slate-900 border border-blue-900/30 w-full max-w-lg rounded-[3rem] shadow-[0_0_150px_rgba(37,99,235,0.15)] p-10 relative border-white/5 overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 via-blue-400 to-blue-600 shadow-[0_0_30px_blue]"></div>
+                <button onClick={() => setShowSupportModal(false)} className="absolute top-8 right-8 p-3 bg-slate-800 rounded-full hover:bg-red-600 transition-all text-white active:scale-75 shadow-xl"><X size={24}/></button>
+                
+                <div className="text-center mb-10 animate-in slide-in-from-top-4 duration-500">
+                    <div className="bg-blue-600/10 p-5 rounded-[2rem] inline-block mb-8 shadow-2xl text-blue-500 border border-blue-500/10"><Code size={40} className="animate-pulse" /></div>
+                    <h2 className="text-3xl font-black italic text-white uppercase tracking-tighter leading-none mb-4 tracking-widest italic uppercase">WK Master Lab</h2>
+                    <p className="text-slate-400 text-sm font-bold italic leading-relaxed px-4">
+                        "Desenvolvo interfaces de alta performance e crio sites baseados exatamente no que o cliente pede."
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 animate-in slide-in-from-bottom-6 duration-700">
+                    <div className="bg-slate-800/40 border border-white/5 p-5 rounded-[2rem] flex items-center justify-between group hover:border-blue-600 transition-all cursor-pointer shadow-lg" onClick={() => window.open('https://wa.me/5562999999999?text=Gostaria%20de%20um%20orçamento%20de%20site', '_blank')}>
+                        <div className="flex items-center gap-5">
+                            <div className="bg-blue-600/10 p-3 rounded-2xl text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all"><MessageCircle size={24} /></div>
+                            <div>
+                                <p className="text-[9px] font-black uppercase text-slate-500 tracking-[0.3em] mb-1 italic">WhatsApp WK</p>
+                                <p className="text-lg font-black text-white italic tracking-tight italic uppercase leading-none">(62) 9 9999-9999</p>
+                            </div>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); copyToClipboard('(62) 99999-9999', 'WhatsApp'); }} className="p-2.5 text-slate-600 hover:text-blue-500 transition-all opacity-0 group-hover:opacity-100"><Copy size={16}/></button>
+                    </div>
+
+                    <div className="bg-slate-800/40 border border-white/5 p-5 rounded-[2rem] flex items-center justify-between group hover:border-blue-600 transition-all cursor-pointer shadow-lg" onClick={() => window.open('https://instagram.com', '_blank')}>
+                        <div className="flex items-center gap-5">
+                            <div className="bg-blue-600/10 p-3 rounded-2xl text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all"><Instagram size={24} /></div>
+                            <div>
+                                <p className="text-[9px] font-black uppercase text-slate-500 tracking-[0.3em] mb-1 italic">Instagram Portfolio</p>
+                                <p className="text-lg font-black text-white italic tracking-tight">@wk.masterlab</p>
+                            </div>
+                        </div>
+                        <div className="p-2.5 text-slate-600 group-hover:text-blue-500"><ExternalLink size={16}/></div>
+                    </div>
+
+                    <div className="bg-slate-800/40 border border-white/5 p-5 rounded-[2rem] flex items-center justify-between group hover:border-blue-600 transition-all cursor-pointer shadow-lg" onClick={() => window.location.href = "mailto:dev@wk.com"}>
+                        <div className="flex items-center gap-5">
+                            <div className="bg-blue-600/10 p-3 rounded-2xl text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all"><Mail size={24} /></div>
+                            <div>
+                                <p className="text-[9px] font-black uppercase text-slate-500 tracking-[0.3em] mb-1 italic">Projetos Dev</p>
+                                <p className="text-lg font-black text-white italic tracking-tight">dev@wk.lab</p>
+                            </div>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); copyToClipboard('dev@wk.lab', 'E-mail'); }} className="p-2.5 text-slate-600 hover:text-blue-500 transition-all opacity-0 group-hover:opacity-100"><Copy size={16}/></button>
+                    </div>
+                </div>
+
+                <div className="mt-10 pt-6 border-t border-white/5 flex justify-center gap-8 opacity-40">
+                    <Globe size={18} className="hover:text-blue-500 cursor-pointer transition-all" />
+                    <Facebook size={18} className="hover:text-blue-500 cursor-pointer transition-all" />
+                    <Github size={18} className="hover:text-blue-500 cursor-pointer transition-all" />
+                </div>
+              </div>
+          </div>
+      )}
+
+      {/* STATUS BUBBLE */}
+      <div className="fixed bottom-6 left-6 z-[450] animate-in slide-in-from-left-10">
+        <div className={`flex items-center gap-3 px-5 py-2.5 rounded-full border shadow-2xl transition-all duration-700 ${isStoreOpen ? 'bg-blue-600 border-blue-400 shadow-blue-500/20' : 'bg-slate-900 border-slate-700 opacity-90'}`}>
+            <div className={`w-2 h-2 rounded-full ${isStoreOpen ? 'bg-white animate-pulse' : 'bg-red-500 shadow-[0_0_10px_red]'}`}></div>
+            <span className="text-[9px] font-black uppercase tracking-widest italic text-white">{isStoreOpen ? 'Aberta' : 'Fechada'}</span>
+            <div className="h-3 w-px bg-white/20 mx-1"></div>
+            <span className="text-[8px] font-bold text-white/60 tracking-tighter uppercase leading-none">{storeHours.open}-{storeHours.close}</span>
+        </div>
+      </div>
+
+      {/* BOLHA DE SERVIÇOS WK LAB */}
+      <div className="fixed bottom-6 right-6 z-[450] group/service">
+          <div className="absolute bottom-full right-0 mb-6 w-64 bg-slate-900 border border-blue-900/30 rounded-[2.5rem] p-6 shadow-[0_0_50px_rgba(0,0,0,0.8)] opacity-0 translate-y-4 pointer-events-none group-hover/service:opacity-100 group-hover/service:translate-y-0 transition-all duration-500 backdrop-blur-xl border-white/5">
+            <h4 className="text-[10px] font-black uppercase text-blue-500 tracking-[0.3em] mb-4 italic leading-none border-b border-white/5 pb-3 italic uppercase">Serviços Técnicos</h4>
+            <div className="space-y-3 italic">
+                {SERVICES.map((s, i) => (
+                    <div key={i} className="flex items-center gap-3 text-white">
+                        <CheckCircle2 size={12} className="text-blue-500 flex-shrink-0" />
+                        <span className="text-[11px] font-bold italic tracking-tight">{s}</span>
+                    </div>
+                ))}
+            </div>
+            <div className="mt-6 pt-4 border-t border-white/5 flex gap-2">
+                <button onClick={() => setActiveTab('repair')} className="text-[8px] font-black uppercase text-white bg-blue-600 flex-1 py-2.5 rounded-full shadow-lg hover:bg-blue-500 transition-all italic uppercase">Agendar Lab</button>
+                <button onClick={() => setShowSupportModal(true)} className="text-[8px] font-black uppercase text-blue-400 bg-blue-600/10 border border-blue-600/20 px-4 rounded-full italic uppercase">Dev Info</button>
+            </div>
+          </div>
+          <div className="relative">
+              <div className="absolute inset-0 bg-blue-600 blur-2xl opacity-40 animate-pulse rounded-full"></div>
+              <button className="relative bg-blue-600 text-white p-4.5 rounded-full shadow-[0_0_40px_rgba(37,99,235,0.4)] hover:scale-110 active:scale-90 transition-all border border-blue-400 shadow-xl">
+                <Wrench size={24} />
+              </button>
+          </div>
+      </div>
+
+      {/* NAVBAR */}
+      <nav className="sticky top-0 z-[400] bg-slate-950/80 backdrop-blur-md border-b border-blue-900/10 px-6 py-4 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto flex justify-between items-center relative w-full">
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => {setActiveTab("store"); setCategoryFilter("Todos"); window.scrollTo({top:0, behavior:'smooth'});}}>
+            <div className="bg-blue-600 p-2.5 rounded-2xl text-white shadow-xl shadow-blue-600/30 group-hover:rotate-12 transition-all">
+              <Smartphone size={20} />
+            </div>
+            <div>
+              <span className="font-black text-xl block leading-none italic text-white tracking-tighter uppercase leading-none italic">P.A CELULARES</span>
+              <span className="text-[8px] text-blue-500 font-black tracking-[0.4em] uppercase italic opacity-80 leading-none mt-1 italic uppercase tracking-widest">Quality Service</span>
+            </div>
+          </div>
+          
+          <div className="hidden md:flex gap-12 font-black text-[9px] uppercase tracking-[0.4em] italic text-slate-500">
+            <button onClick={() => setActiveTab("store")} className={`hover:text-blue-500 transition-all ${activeTab === "store" ? "text-blue-500 border-b-2 border-blue-500 pb-1" : ""}`}>Store</button>
+            <button onClick={() => setActiveTab("repair")} className={`hover:text-blue-500 transition-all ${activeTab === "repair" ? "text-blue-500 border-b-2 border-blue-500 pb-1" : ""}`}>Service</button>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsSearchVisible(!isSearchVisible)} className={`p-2.5 rounded-full transition-all ${isSearchVisible ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-blue-500'}`}><Search size={22} /></button>
+            <button onClick={() => setIsCartOpen(true)} className="relative p-2.5 text-slate-400 hover:text-blue-500 transition-all group">
+              <ShoppingCart size={22} className="group-hover:scale-110 transition-all" />
+              {cart.length > 0 && <span className="absolute top-1 right-1 bg-blue-600 text-white text-[8px] w-4.5 h-4.5 flex items-center justify-center rounded-full font-black border-2 border-slate-950 shadow-lg">{cart.reduce((a, b) => a + b.quantity, 0)}</span>}
+            </button>
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="md:hidden p-2 text-slate-400 transition-all active:scale-90 rounded-xl"><Menu size={24}/></button>
+          </div>
+
+          {isSearchVisible && (
+            <div className="absolute top-16 right-0 left-0 md:left-auto md:w-[400px] animate-in slide-in-from-top-2 duration-300 z-50">
+               <div className="bg-slate-900 border border-blue-900/20 p-4 rounded-[2rem] shadow-2xl border-white/5">
+                  <div className="relative">
+                    <Search className="absolute left-4 top-3.5 text-slate-500" size={18} />
+                    <input autoFocus type="text" placeholder="Procurar no estoque WK..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-full py-4 pl-12 pr-6 text-xs outline-none focus:ring-2 focus:ring-blue-600 text-white font-bold italic tracking-wider italic uppercase italic" />
+                  </div>
+               </div>
+            </div>
+          )}
+        </div>
+      </nav>
+
+      {/* MOBILE MENU */}
+      {isMobileMenuOpen && (
+          <div className="md:hidden fixed inset-0 z-[300] bg-slate-950 pt-32 px-10 space-y-8 animate-in slide-in-from-top-10 duration-500 italic">
+              <button onClick={() => {setActiveTab("store"); setIsMobileMenuOpen(false)}} className="text-4xl font-black text-white italic uppercase block">Store</button>
+              <button onClick={() => {setActiveTab("repair"); setIsMobileMenuOpen(false)}} className="text-4xl font-black text-white italic uppercase block">Service</button>
+          </div>
+      )}
+
+      {/* CONTENT */}
+      <main className="max-w-7xl mx-auto px-6 py-6 italic uppercase">
+        {activeTab === "store" ? (
+          <>
+            {/* HERO CARROSSEL COMPACTO */}
+            <div className="relative rounded-[3rem] overflow-hidden bg-slate-900 h-[400px] mb-12 border border-slate-800 shadow-2xl group">
+              {banners.map((item, idx) => (
+                <div key={idx} className={`absolute inset-0 transition-all duration-1500 transform ${idx === currentBannerIndex ? 'opacity-100 scale-100' : 'opacity-0 scale-105 pointer-events-none'}`}>
+                    <img src={item.url || item} className="w-full h-full object-cover opacity-60" alt="h" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/20 to-transparent flex items-center px-8 md:px-24">
+                        <div className="max-w-2xl animate-in slide-in-from-left-20 duration-1000">
+                             <span className="bg-blue-600/20 border border-blue-600/30 text-blue-500 px-6 py-2 rounded-full font-black text-[8px] uppercase tracking-[0.4em] italic mb-8 inline-block leading-none shadow-2xl">WK Master Portfolio 2026</span>
+                             <h2 className="text-5xl md:text-8xl font-black mb-8 leading-none italic text-white uppercase tracking-tighter leading-[0.85] tracking-tight drop-shadow-2xl italic">
+                                {item.title || "STYLE"} <br/><span className="text-blue-600 drop-shadow-[0_0_30px_rgba(59,130,246,0.4)] italic uppercase">{item.title ? "WK" : "MOBILE"}</span>
+                             </h2>
+                             <p className="text-slate-300 mb-12 text-sm md:text-2xl font-bold leading-relaxed opacity-90 max-w-lg italic tracking-tight">{item.sub || "A tecnologia que define o seu tempo está aqui."}</p>
+                             <button onClick={() => document.getElementById('vitrine').scrollIntoView({behavior:'smooth'})} className="bg-blue-600 px-12 py-5 rounded-full font-black shadow-[0_20px_40px_rgba(37,99,235,0.3)] active:scale-95 transition-all uppercase tracking-[0.4em] text-[10px] hover:bg-white hover:text-blue-600 text-white italic uppercase shadow-xl flex items-center gap-3 w-fit">
+                                <MessageCircle size={18} /> CONFIRA AGORA
+                             </button>
+                        </div>
+                    </div>
+                </div>
+              ))}
+              <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-4 z-20">
+                {banners.map((_, i) => (
+                    <div key={i} className={`h-1 transition-all duration-700 rounded-full shadow-2xl ${i === currentBannerIndex ? 'w-20 bg-blue-500' : 'w-2 bg-slate-700 opacity-40'}`}></div>
+                ))}
+              </div>
+            </div>
+
+            {/* DISPONIVEIS PARA VOCÊ (CARROSSEL COM SETAS FIXADAS) */}
+            {products.length > 0 && (
+                <div className="mb-24 animate-in fade-in duration-1000 relative">
+                    <div className="flex items-center gap-6 mb-10 px-4 text-white uppercase italic tracking-tighter">
+                        <h2 className="text-2xl md:text-5xl font-black italic tracking-tighter uppercase tracking-[0.1em] leading-none italic"><span className="text-blue-500 italic">DESTAQUES</span></h2>
+                        <div className="h-px bg-slate-800 flex-1 opacity-40 min-w-[50px]"></div>
+                        <div className="flex gap-3 items-center opacity-60"><div className="w-2 h-2 rounded-full bg-blue-600 animate-ping"></div><span className="text-[9px] font-black uppercase text-blue-500 tracking-[0.4em] italic">LIVE STOCK</span></div>
+                    </div>
+
+                    <div className="relative group/slider overflow-hidden rounded-[3.5rem] bg-slate-900/30 border border-blue-900/5 p-8 md:p-20 shadow-2xl border-white/5 italic">
+                        <button onClick={prevProduct} className="absolute left-6 top-1/2 -translate-y-1/2 z-10 p-4 rounded-full bg-slate-900/60 border border-blue-600/30 text-blue-500 hover:bg-blue-600 hover:text-white transition-all shadow-2xl opacity-0 group-hover/slider:opacity-100 active:scale-90 backdrop-blur-sm"><ChevronLeft size={32} /></button>
+                        <button onClick={nextProduct} className="absolute right-6 top-1/2 -translate-y-1/2 z-10 p-4 rounded-full bg-slate-900/60 border border-blue-600/30 text-blue-500 hover:bg-blue-600 hover:text-white transition-all shadow-2xl opacity-0 group-hover/slider:opacity-100 active:scale-90 backdrop-blur-sm"><ChevronRight size={32} /></button>
+
+                        <div className="flex transition-transform duration-1200 ease-in-out" style={{ transform: `translateX(-${currentProductIndex * 100}%)` }}>
+                            {products.slice(0, 8).map((p) => (
+                                <div key={p.id} className="min-w-full flex flex-col md:flex-row items-center gap-10 md:gap-24 px-4 md:px-14">
+                                    <div className="w-full md:w-[450px] aspect-square rounded-[3.5rem] overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.7)] relative group cursor-pointer border border-white/5 shadow-blue-950/20 flex-shrink-0" onClick={() => setSelectedProduct(p)}>
+                                        <img src={p.image} className="w-full h-full object-cover transition-transform duration-[3s] group-hover:scale-110" alt="p" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
+                                        <div className="absolute bottom-10 left-10 flex items-center gap-4"><div className="w-10 h-1 bg-blue-600 shadow-[0_0_10px_blue]"></div><span className="text-white font-black text-[10px] italic tracking-[0.5em] leading-none uppercase italic">LAB DATA</span></div>
+                                    </div>
+                                    <div className="flex-1 text-center md:text-left py-6 text-white uppercase italic">
+                                        <span className="text-blue-500 font-black text-[10px] uppercase tracking-[0.5em] mb-6 block italic opacity-80 leading-none italic uppercase">WK Selected Unit</span>
+                                        <h3 className="text-4xl md:text-8xl font-black italic text-white mb-10 leading-[0.85] uppercase tracking-tighter leading-tight tracking-[-0.03em] drop-shadow-2xl uppercase italic">{p.name}</h3>
+                                        <p className="text-slate-300 text-xl md:text-3xl font-bold italic mb-14 leading-relaxed opacity-90 line-clamp-3 italic tracking-tight">{p.description || p.specs}</p>
+                                        <div className="flex flex-col sm:flex-row items-center gap-12">
+                                            <span className="text-5xl font-black text-blue-500 italic tracking-tighter leading-none shadow-blue-600/10 tracking-tighter italic uppercase">{FormatCurrency(p.price)}</span>
+                                            <button onClick={() => addToCart(p)} className="bg-white text-black px-12 py-5 rounded-full font-black shadow-2xl hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest text-[11px] active:scale-90 border border-white/10 italic leading-none uppercase italic">Add to Bag</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div id="vitrine" className="mb-14 flex justify-center">
+                <div className="flex gap-2 overflow-x-auto pb-5 no-scrollbar scroll-smooth">
+                    {CATEGORIES.map(c => (
+                    <button key={c} onClick={() => setCategoryFilter(c)} className={`whitespace-nowrap px-10 py-4 rounded-full font-black text-[10px] uppercase tracking-widest transition-all border shadow-2xl ${categoryFilter === c ? 'bg-blue-600 border-blue-500 text-white shadow-blue-600/30 scale-105 translate-y-[-4px]' : 'bg-slate-900 text-slate-500 border-slate-800 hover:border-blue-900/40 hover:text-slate-300'}`}>{c}</button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 text-white italic uppercase tracking-tighter">
+              {filteredProducts.map(p => (
+                <div key={p.id} className="group bg-slate-900 border border-blue-900/5 rounded-[3rem] overflow-hidden hover:border-blue-600/40 transition-all flex flex-col shadow-2xl hover:shadow-blue-600/10 relative h-full border-white/5 uppercase italic">
+                  <div className="relative h-72 overflow-hidden bg-slate-800 cursor-pointer shadow-inner" onClick={() => setSelectedProduct(p)}>
+                    <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 opacity-95 group-hover:opacity-100" alt="p" />
+                    {p.badge && <span className="absolute top-6 left-6 bg-blue-600 text-[9px] font-black px-5 py-2 rounded-2xl shadow-2xl italic uppercase tracking-tighter z-10 text-white shadow-blue-900/40 leading-none uppercase">{p.badge}</span>}
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-700 backdrop-blur-[2px]">
+                        <button className="bg-white text-black px-10 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.4em] flex items-center gap-4 shadow-2xl transform translate-y-10 group-hover:translate-y-0 transition-all duration-500 italic uppercase leading-none italic leading-none"><Eye size={18} /> Detalhes</button>
+                    </div>
+                  </div>
+                  <div className="p-10 flex flex-col flex-1 italic uppercase">
+                    <h3 className="font-black text-lg mb-4 italic truncate text-white uppercase tracking-tighter leading-none tracking-[0.05em] uppercase italic leading-none">{p.name}</h3>
+                    <div className="mb-10 space-y-4 opacity-90 italic">
+                        <div className="flex items-center gap-3 text-blue-500 font-black text-[9px] uppercase tracking-[0.4em] opacity-80 leading-none italic uppercase"><Layers size={14} /> Ficha Hardware</div>
+                        <p className="text-[11px] text-slate-300 italic font-bold line-clamp-2 leading-relaxed italic">{p.specs}</p>
+                    </div>
+                    <div className="mt-auto flex justify-between items-end border-t border-slate-800/50 pt-8 gap-4 italic uppercase">
+                        <div className="flex flex-col italic uppercase">
+                            <span className="text-[9px] text-slate-600 font-black uppercase tracking-widest mb-1 italic leading-none uppercase">Investimento</span>
+                            <span className="text-2xl font-black text-white italic tracking-tighter leading-none italic uppercase leading-none">{FormatCurrency(p.price)}</span>
+                        </div>
+                        <button onClick={() => addToCart(p)} className="bg-blue-600 p-5 rounded-full shadow-[0_15px_30px_rgba(37,99,235,0.3)] hover:bg-white hover:text-blue-600 transition-all active:scale-90 text-white shadow-lg"><Plus size={24}/></button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="max-w-4xl mx-auto py-16 animate-in slide-in-from-bottom-8 duration-700 text-center italic uppercase">
+            <div className="mb-20 space-y-8 italic uppercase text-white">
+                <div className="w-28 h-28 bg-blue-600/10 border border-blue-500/20 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-2xl group overflow-hidden relative transition-all border-white/5">
+                    <div className="absolute inset-0 bg-blue-600/5 animate-pulse italic uppercase"></div>
+                    <Wrench size={48} className="text-blue-500 group-hover:rotate-[30deg] transition-all duration-700 relative z-10" />
+                </div>
+                <h2 className="text-5xl md:text-8xl font-black italic tracking-tighter text-white uppercase leading-none tracking-tight leading-none uppercase italic tracking-tighter leading-[0.8] italic uppercase">Lab Service <br/><span className="text-blue-500 drop-shadow-[0_0_25px_rgba(59,130,246,0.3)] italic uppercase leading-none">WK Clinic.</span></h2>
+                <p className="text-slate-400 text-lg max-w-lg mx-auto font-bold italic uppercase tracking-[0.5em] text-[11px] opacity-80 leading-relaxed italic uppercase italic uppercase italic">Benchmark em recuperação avançada de hardware mobile em Goiânia.</p>
+            </div>
+
+            <div className="bg-slate-900 border border-blue-900/20 rounded-[4.5rem] p-10 md:p-24 shadow-[0_0_120px_rgba(0,0,0,0.6)] relative overflow-hidden text-left border-white/5 uppercase italic uppercase">
+                <div className="absolute top-0 left-0 w-full h-2 bg-blue-600 shadow-[0_0_20px_blue]"></div>
+                <form onSubmit={handleRepairSubmit} className="space-y-12 relative z-10 italic uppercase">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 italic uppercase">
+                        <div className="space-y-4 text-white italic uppercase">
+                            <label className="text-[11px] font-black text-slate-600 uppercase tracking-widest ml-6 flex items-center gap-4 italic leading-none opacity-90 uppercase italic uppercase leading-none"><User size={16} className="text-blue-500" /> Identificação</label>
+                            <input required type="text" placeholder="Seu nome completo" value={repairData.clientName} onChange={e => setRepairData({...repairData, clientName: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded-full p-8 outline-none focus:ring-4 focus:ring-blue-600/10 transition-all font-black text-white italic placeholder:text-slate-600 shadow-inner text-lg uppercase tracking-widest italic shadow-blue-900/10 uppercase italic shadow-inner" />
+                        </div>
+                        <div className="space-y-4 text-white italic uppercase">
+                            <label className="text-[11px] font-black text-slate-600 uppercase tracking-widest ml-6 flex items-center gap-4 italic leading-none opacity-90 uppercase italic uppercase leading-none italic uppercase"><Phone size={16} className="text-blue-500" /> WhatsApp</label>
+                            <input required type="tel" placeholder="(62) 9 9999-9999" value={repairData.whatsapp} onChange={e => setRepairData({...repairData, whatsapp: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded-full p-8 outline-none focus:ring-4 focus:ring-blue-600/10 transition-all font-black text-white italic placeholder:text-slate-600 shadow-inner text-lg uppercase tracking-widest italic shadow-blue-900/10 uppercase italic shadow-inner" />
+                        </div>
+                    </div>
+                    <div className="space-y-4 text-white italic uppercase">
+                        <label className="text-[11px] font-black text-slate-600 uppercase tracking-widest ml-6 flex items-center gap-4 italic leading-none opacity-90 uppercase italic uppercase leading-none italic uppercase italic uppercase"><Smartphone size={16} className="text-blue-500" /> Dispositivo WK</label>
+                        <input required type="text" placeholder="Modelo e capacidade (Ex: iPhone 15 Pro 512GB)" value={repairData.deviceModel} onChange={e => setRepairData({...repairData, deviceModel: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded-full p-8 outline-none focus:ring-4 focus:ring-blue-600/10 transition-all font-black text-white italic placeholder:text-slate-600 shadow-inner text-lg uppercase tracking-widest italic shadow-blue-900/10 uppercase italic shadow-inner" />
+                    </div>
+                    <div className="space-y-4 text-white italic uppercase leading-none italic uppercase">
+                        <label className="text-[11px] font-black text-slate-600 uppercase tracking-widest ml-6 flex items-center gap-4 italic leading-none opacity-90 uppercase italic uppercase leading-none italic uppercase italic uppercase italic uppercase italic"><AlertCircle size={16} className="text-blue-500" /> Relatório de Falhas</label>
+                        <textarea required placeholder="Descreva os danos observados detalhadamente..." value={repairData.defectDescription} onChange={e => setRepairData({...repairData, defectDescription: e.target.value})} className="w-full bg-slate-800 border border-slate-700 rounded-[3rem] p-10 h-64 outline-none focus:ring-4 focus:ring-blue-600/10 transition-all font-bold text-white italic placeholder:text-slate-600 resize-none shadow-inner text-lg italic shadow-blue-900/10 leading-relaxed uppercase italic"></textarea>
+                    </div>
+                    <button type="submit" className="w-full bg-green-600 py-10 rounded-full font-black text-base flex items-center justify-center gap-8 shadow-2xl active:scale-95 transition-all uppercase tracking-[0.5em] text-white italic hover:bg-green-500 italic leading-none uppercase italic uppercase italic">
+                        <MessageCircle size={32} /> Obter Laudo Técnico Wk
+                    </button>
+                </form>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* LOGIN ADMIN */}
+      {showAdminLogin && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/95 p-4">
+            <div className="bg-slate-900 border border-slate-800 p-10 rounded-[3rem] w-full max-w-sm text-center">
+                <Lock size={32} className="text-blue-500 mx-auto mb-6" />
+                <h2 className="text-xl font-black text-white uppercase italic tracking-widest mb-6">Acesso WK</h2>
+                <form onSubmit={handleLogin} className="space-y-4">
+                    <input type="text" placeholder="User" value={adminUser} onChange={e => setAdminUser(e.target.value)} className="w-full bg-slate-800 border-none rounded-full px-6 py-4 text-white text-center font-bold outline-none focus:ring-2 focus:ring-blue-600" />
+                    <input type="password" placeholder="Pass" value={adminPass} onChange={e => setAdminPass(e.target.value)} className="w-full bg-slate-800 border-none rounded-full px-6 py-4 text-white text-center font-bold outline-none focus:ring-2 focus:ring-blue-600" />
+                    {loginError && <p className="text-red-500 text-xs font-bold uppercase">{loginError}</p>}
+                    <button className="w-full bg-blue-600 py-4 rounded-full font-black text-xs uppercase text-white">Entrar</button>
+                    <button type="button" onClick={() => setShowAdminLogin(false)} className="text-slate-500 text-[10px] font-bold uppercase mt-4">Voltar</button>
+                </form>
+            </div>
+        </div>
+      )}
+
+      {/* MODAL DETALHES PRODUTO */}
+      {selectedProduct && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">
+            <div className="bg-slate-900 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[3rem] border border-blue-900/20 relative flex flex-col md:flex-row">
+                <button onClick={() => setSelectedProduct(null)} className="absolute top-6 right-6 p-3 bg-slate-800 rounded-full text-white hover:bg-red-600 z-50"><X size={20}/></button>
+                <div className="md:w-1/2 bg-slate-950 flex items-center justify-center h-80 md:h-auto"><img src={selectedProduct.image} className="w-full h-full object-cover" /></div>
+                <div className="md:w-1/2 p-10 flex flex-col justify-center">
+                    <span className="text-blue-500 text-[10px] font-black uppercase tracking-[0.4em] mb-4">WK Premium</span>
+                    <h2 className="text-4xl font-black text-white italic mb-6 leading-none uppercase">{selectedProduct.name}</h2>
+                    <p className="text-slate-400 text-sm mb-6 leading-relaxed font-medium">{selectedProduct.description || selectedProduct.specs}</p>
+                    <div className="mt-auto flex items-center justify-between border-t border-slate-800 pt-6">
+                        <span className="text-3xl font-black text-white italic">{FormatCurrency(selectedProduct.price)}</span>
+                        <button onClick={() => {addToCart(selectedProduct); setSelectedProduct(null)}} className="bg-blue-600 px-8 py-4 rounded-full font-black text-xs uppercase text-white shadow-xl hover:bg-blue-500">Comprar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+      )}
+
+      <footer className="mt-20 border-t border-slate-900 py-16 px-6">
+         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 text-center md:text-left">
+            <div><h3 className="font-black text-3xl italic text-white mb-6">P.A CELULARES</h3><p className="text-slate-500 text-[11px] font-bold leading-relaxed uppercase italic">Benchmark em hardware mobile.</p></div>
+            <div>
+                <h4 className="text-[10px] font-black text-slate-600 mb-6 uppercase">Menu</h4>
+                <div className="flex flex-col gap-3">
+                    <button onClick={() => setShowSupportModal(true)} className="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-left text-xs text-slate-300 font-bold hover:text-blue-500 relative">
+                        CONTACTOS WK
+                    </button>
+                    <button onClick={() => setActiveTab('repair')} className="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-left text-xs text-slate-300 font-bold hover:text-blue-500">LABORATÓRIO</button>
+                </div>
+            </div>
+            <div>
+                <h4 className="text-[10px] font-black text-slate-600 mb-6 uppercase">Horários</h4>
+                <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] space-y-4">
+                    <div className="flex items-center gap-3 text-white"><Clock className="text-blue-500" size={18} /> <span className="text-[12px] font-bold">{storeHours.open} - {storeHours.close}</span></div>
+                    <div className="flex items-center gap-3 text-white"><Phone className="text-blue-500" size={18} /> <span className="text-[12px] font-bold">(62) 9 9999-9999</span></div>
+                </div>
+            </div>
+            <div className="flex flex-col gap-6">
+                <button onClick={() => setShowSupportModal(true)} className="w-full bg-slate-900 border border-slate-800 p-5 rounded-2xl text-[10px] font-black text-white flex items-center justify-center gap-3 hover:text-blue-500"><Code size={14}/> DEV WK</button>
+                <button onClick={() => setShowAdminLogin(true)} className="w-full bg-blue-600/10 border border-blue-600/20 p-5 rounded-2xl text-[10px] font-black text-blue-500 flex items-center justify-center gap-3"><Lock size={14}/> ADMIN WK</button>
+            </div>
+         </div>
+      </footer>
+    </div>
+  );
+}
